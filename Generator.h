@@ -119,6 +119,53 @@ private:
   double lambda;
 };
 
+class NH_Exponential : public Generator {
+  public:
+  NH_Exponential(double _lambda = 1.0) : lambda(_lambda) {
+      D("NH_Exponential(lambda=%f)", lambda);
+    }
+  
+    // 速率函数 lambda(t) = A * sin(w * t + phi) + b
+    // 累积强度函数 Lambda(t) = integral(lambda(u), 0, t)，这个case下是解析解
+    double cumulative_intensity(double t, double A, double w, double phi, double b) {
+      return (A / w) * (-std::cos(w * t + phi) + std::cos(phi)) + b * t;
+    }
+
+    // 逆累积强度函数：求解 Lambda(T) = x 得到 T
+    double inverse_cumulative_intensity(double x, double A, double   w, double phi, double b) {
+      double t = 0.0; // 初始猜测
+      double epsilon = 1e-6; // 精度
+      double step = 0.01; // 步长
+
+      // 使用数值方法求解 Lambda(t) = x
+      while (cumulative_intensity(t, A, w, phi, b) < x) {
+          t += step;
+      }
+      return t;
+    }
+
+    // 生成非齐次指数分布的随机数
+    double generate_nonhomogeneous_exponential(double A, double w, double phi, double b) {
+      double u = drand48();
+      double x = -std::log(1.0 - u); // 转换为指数分布的随机数
+      return inverse_cumulative_intensity(x, A, w, phi, b); // 通过逆累积强度函数得到 T
+    }
+
+    virtual double generate(double U = -1.0) {
+      if (lambda <= 0.0) return 0.0;
+      return generate_nonhomogeneous_exponential(A, w, phi, b);
+    }
+  
+    virtual void set_lambda(double lambda) { this->lambda = lambda; }
+  
+  private:
+    double lambda;
+    double A = 2;
+    double w = 0.5;
+    double phi = 0;
+    double b = 3;
+  };
+
 class GPareto : public Generator {
 public:
   GPareto(double _loc = 0.0, double _scale = 1.0, double _shape = 1.0) :
