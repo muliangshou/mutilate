@@ -18,13 +18,13 @@ conf.Define("__STDC_FORMAT_MACROS")
 if not conf.CheckCXX():
     print ("A compiler with C++11 support is required.")
     Exit(1)
-print "Checking for gengetopt...",
+print ("Checking for gengetopt..."),
 if env.Execute("@which gengetopt &> /dev/null"):
-    print "not found (required)"
+    print ("not found (required)")
     Exit(1)
 else: print ("found")
 if not conf.CheckLibWithHeader("event", "event2/event.h", "C++"):
-    print "libevent required"
+    print ("libevent required")
     Exit(1)
 conf.CheckDeclaration("EVENT_BASE_FLAG_PRECISE_TIMER", '#include <event2/event.h>', "C++")
 if not conf.CheckLibWithHeader("pthread", "pthread.h", "C++"):
