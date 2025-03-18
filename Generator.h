@@ -131,6 +131,7 @@ class NH_Exponential : public Generator {
   public:
   NH_Exponential(double _lambda = 1.0) : lambda(_lambda) {
       D("NH_Exponential(lambda=%f)", lambda);
+      load_histogram("amplitude_counts.json", histogram);
     }
   
     // 速率函数 lambda(t) = A * sin(w * t + phi) + b
@@ -139,7 +140,7 @@ class NH_Exponential : public Generator {
       return (A / w) * (-std::cos(w * t + phi) + std::cos(phi)) + b * t;
     }
 
-    void load_histogram(const std::string& filename) {
+    void load_A_histogram(const std::string& filename) {
       std::ifstream file(filename);
       if (!file.is_open()) {
           std::cerr << "Failed to open file: " << filename << std::endl;
@@ -152,14 +153,62 @@ class NH_Exponential : public Generator {
 
       double total_count = 0.0;
       for (auto& [bin, count] : j.items()) {
-          histogram[bin] = count;
-          total_count += histogram[bin];
+        A_histogram[bin] = count;
+          total_count += A_histogram[bin];
       }
 
       // Normalize counts to probabilities
-      for (auto& [bin, count] : histogram) {
+      for (auto& [bin, count] : A_histogram) {
           double count_double = count;
-          histogram[bin] = count_double / total_count;
+          A_histogram[bin] = count_double / total_count;
+      }
+    }
+
+    void load_phi_histogram(const std::string& filename) {
+      std::ifstream file(filename);
+      if (!file.is_open()) {
+          std::cerr << "Failed to open file: " << filename << std::endl;
+          return;
+      }
+
+      json j;
+      file >> j;
+      file.close();
+
+      double total_count = 0.0;
+      for (auto& [bin, count] : j.items()) {
+        A_histogram[bin] = count;
+          total_count += phi_histogram[bin];
+      }
+
+      // Normalize counts to probabilities
+      for (auto& [bin, count] : phi_histogram) {
+          double count_double = count;
+          phi_histogram[bin] = count_double / total_count;
+      }
+    }
+
+    void load_w_histogram(const std::string& filename) {
+      std::ifstream file(filename);
+      if (!file.is_open()) {
+          std::cerr << "Failed to open file: " << filename << std::endl;
+          return;
+      }
+
+      json j;
+      file >> j;
+      file.close();
+
+      double total_count = 0.0;
+      for (auto& [bin, count] : j.items()) {
+        A_histogram[bin] = count;
+          total_count += w_histogram[bin];
+      }
+
+      // Normalize counts to probabilities
+      for (auto& [bin, count] : w_histogram) {
+          double count_double = count;
+          w_histogram[bin] = count_double / total_count;
       }
     }
 
@@ -186,6 +235,8 @@ class NH_Exponential : public Generator {
     virtual double generate(double U = -1.0) {
       if (lambda <= 0.0) return 0.0;
       adjust_A();
+      adjust_phi();
+      adjust_w();
       return generate_nonhomogeneous_exponential(A, w, phi, b);
     }
   
@@ -198,7 +249,9 @@ class NH_Exponential : public Generator {
     double phi = 0;
     double b = 3;
 
-    std::map<std::string, double> histogram;
+    std::map<std::string, double> A_histogram;
+    std::map<std::string, double> w_histogram;
+    std::map<std::string, double> phi_histogram;
 
     void adjust_A() {
       static std::random_device rd;
@@ -208,7 +261,7 @@ class NH_Exponential : public Generator {
       double random_value = dis(gen);
       double cumulative_probability = 0.0;
 
-      for (const auto& [bin, prob] : histogram) {
+      for (const auto& [bin, prob] : A_histogram) {
           cumulative_probability += prob;
           if (random_value <= cumulative_probability) {
               // Parse the bin range and set A to the midpoint of the bin
@@ -216,6 +269,48 @@ class NH_Exponential : public Generator {
               double lower_bound = std::stod(bin.substr(0, dash_pos));
               double upper_bound = std::stod(bin.substr(dash_pos + 1));
               A = (lower_bound + upper_bound) / 2.0;
+              break;
+          }
+      }
+    }
+
+    void adjust_w() {
+      static std::random_device rd;
+      static std::mt19937 gen(rd());
+      static std::uniform_real_distribution<> dis(0.0, 1.0);
+
+      double random_value = dis(gen);
+      double cumulative_probability = 0.0;
+
+      for (const auto& [bin, prob] : A_histogram) {
+          cumulative_probability += prob;
+          if (random_value <= cumulative_probability) {
+              // Parse the bin range and set A to the midpoint of the bin
+              size_t dash_pos = bin.find('-');
+              double lower_bound = std::stod(bin.substr(0, dash_pos));
+              double upper_bound = std::stod(bin.substr(dash_pos + 1));
+              w = (lower_bound + upper_bound) / 2.0;
+              break;
+          }
+      }
+    }
+
+    void adjust_phi() {
+      static std::random_device rd;
+      static std::mt19937 gen(rd());
+      static std::uniform_real_distribution<> dis(0.0, 1.0);
+
+      double random_value = dis(gen);
+      double cumulative_probability = 0.0;
+
+      for (const auto& [bin, prob] : A_histogram) {
+          cumulative_probability += prob;
+          if (random_value <= cumulative_probability) {
+              // Parse the bin range and set A to the midpoint of the bin
+              size_t dash_pos = bin.find('-');
+              double lower_bound = std::stod(bin.substr(0, dash_pos));
+              double upper_bound = std::stod(bin.substr(dash_pos + 1));
+              phi = (lower_bound + upper_bound) / 2.0;
               break;
           }
       }
