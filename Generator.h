@@ -131,7 +131,9 @@ class NH_Exponential : public Generator {
   public:
   NH_Exponential(double _lambda = 1.0) : lambda(_lambda) {
       D("NH_Exponential(lambda=%f)", lambda);
-      load_histogram("amplitude_counts.json", histogram);
+      load_A_histogram("./asset/amplitude_counts.json", histogram);
+      load_phi_histogram("./period_counts.json", histogram);
+      load_w_histogram("./phase_counts.json", histogram);
     }
   
     // 速率函数 lambda(t) = A * sin(w * t + phi) + b
