@@ -152,13 +152,13 @@ class NH_Exponential : public Generator {
 
       double total_count = 0.0;
       for (auto& [bin, count] : j.items()) {
-          histogram[bin] = count.get<double>();
+          histogram[bin] = count;
           total_count += histogram[bin];
       }
 
       // Normalize counts to probabilities
       for (auto& [bin, count] : histogram) {
-          double count_double = count.get<double>();
+          double count_double = count;
           histogram[bin] = count_double / total_count;
       }
     }
