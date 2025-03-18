@@ -152,7 +152,7 @@ class NH_Exponential : public Generator {
 
       double total_count = 0.0;
       for (auto& [bin, count] : j.items()) {
-          histogram[bin] = count;
+          histogram[bin] = count.get<double>();
           total_count += count;
       }
 
